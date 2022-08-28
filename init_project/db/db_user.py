@@ -1,4 +1,5 @@
 from sqlalchemy.orm.session import Session
+from fastapi import HTTPException, status
 
 from db.hash import Hash
 from schemas import UserBase
@@ -20,10 +21,15 @@ def get_all_users(db: Session):
     return db.query(DbUser).all()
 
 def get_user(db: Session, id: int):
-    return db.query(DbUser).get(id)
+    user = db.query(DbUser).get(id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with {id} is not found")
+    return user
 
 def update_user(db: Session, id: int, req: UserBase):
     user = db.query(DbUser).filter(DbUser.id == id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with {id} is not found")
     user.update({
         DbUser.username: req.username,
         DbUser.email: req.email,
@@ -34,6 +40,8 @@ def update_user(db: Session, id: int, req: UserBase):
 
 def delete_user(db: Session, id: int):
     user = db.query(DbUser).filter(DbUser.id == id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with {id} is not found")
     db.delete(user)
     db.commit()
     return 'ok'
